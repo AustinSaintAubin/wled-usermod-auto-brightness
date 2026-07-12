@@ -15,8 +15,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Build against WLED main (catches drift) — add release branches/tags here.
-        wled_ref: [main]
+        # Build against WLED main (catches drift) and the latest release tag
+        # (so drift on main can't mask a release regression) — bump the tag
+        # when a new WLED release lands.
+        wled_ref: [main, v16.0.1]
         # default = MQTT on; no_mqtt exercises the WLED_DISABLE_MQTT code path,
         # which is conditionally compiled and would otherwise never be built.
         variant: [default, no_mqtt]

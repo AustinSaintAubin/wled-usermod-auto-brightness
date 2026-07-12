@@ -21,9 +21,9 @@ honest: when something ships, move its line to the Done log with the version.
    are reachable: discovery entities appear with underscore object ids, switch works both
    directions, lux heartbeat survives a 30-min soak, legacy sensors-i2c switch entity is
    cleared, both mods share one BH1750 without bus errors.
-3. **Push sensors-i2c v2.0.0** (`27a38c9`, currently local-only) and bench its
-   TESTING.md §0 (strip-down + legacy retained-config clear). The two changes are
-   designed to ship together — the new repo's readme already points at the split.
+3. **Bench sensors-i2c v2.0.0** TESTING.md §0 (strip-down + legacy retained-config
+   clear) — `27a38c9` is pushed to GitHub; only the bench remains. The two changes
+   are designed to ship together — the new repo's readme already points at the split.
 4. **Tag** `v1.0.0` here and `v2.0.0` there; `git push origin <tag>` and mirror to `nas`.
 5. **Fix any bench fallout** as `fix: … (v1.0.x)` patches before tagging — the tag marks
    the first bench-proven state.
@@ -32,12 +32,6 @@ honest: when something ships, move its line to the Done log with the version.
 
 6. **List in the WLED community-usermods index** (PR to `wled/WLED-Docs`, like the
    word-clock's WLED-Docs#336) — both this repo and the updated sensors-i2c description.
-7. **Conditional settings UI**: grey out / hint the BH1750-address field when Source is
-   VEML7700/Analog, and the calibration table + Analog Pin when Source is I²C (a small
-   `onchange` handler on the Source dropdown; keep the fields present so values persist —
-   hide, don't remove). Ship as a `feat` patch once bench confirms the base UI.
-8. **CI matrix hardening**: add the next tagged WLED release to `wled_ref` alongside
-   `main` when one lands, so a WLED API drift on main doesn't mask a release regression.
 
 ## Backlog (promotion trigger stated per item)
 
@@ -69,6 +63,11 @@ honest: when something ships, move its line to the Done log with the version.
 
 ## Done log
 
+- 2026-07-12 — v1.0.1 conditional settings UI (unbenched — new TESTING.md §1 item):
+  Source dropdown live-hides inapplicable fields (BH1750 Address on VEML/Analog;
+  Analog Pin + calibration table on I²C sources) via display:none so hidden values
+  still persist. CI matrix now also builds against the WLED v16.0.1 release tag
+  alongside main.
 - 2026-07-12 — v1.0.0 initial release (unbenched): BH1750/VEML7700/analog sources,
   control logic lifted from sensors-i2c v1.0.16, MQTT/HA with underscore object ids,
   CI green (default + no_mqtt vs WLED main). Repo pushed to GitHub.
