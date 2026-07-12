@@ -1,0 +1,16 @@
+{
+  "name": "wled-usermod-auto-brightness",
+  "version": "1.0.0",
+  "license": "MIT",
+  "description": "Ambient-light auto-brightness usermod for WLED: drives overall LED brightness from a BH1750FVI or VEML7700 I2C lux sensor (selectable or auto-detected) or an analog photocell/LDR, with dark-off, manual offset tracking, and optional MQTT / Home Assistant publishing.",
+  "repository": { "type": "git", "url": "https://github.com/AustinSaintAubin/wled-usermod-auto-brightness.git" },
+  "authors": [
+    { "name": "Austin St. Aubin", "email": "austinsaintaubin@gmail.com", "maintainer": true }
+  ],
+  "keywords": "wled, usermod, auto-brightness, ambient light, lux, bh1750, veml7700, photocell, ldr, analog, i2c, mqtt, home assistant, esp32",
+  "dependencies": {
+    "claws/BH1750": "^1.3.0",
+    "adafruit/Adafruit VEML7700 Library": "^2.1.6"
+  },
+  "build": { "libArchive": false }
+}
