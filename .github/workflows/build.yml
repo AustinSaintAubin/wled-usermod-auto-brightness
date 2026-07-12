@@ -77,4 +77,7 @@ jobs:
           cd wled
           pio run -e auto_brightness_ci 2>&1 | tee build.log
           echo "--- verifying the usermod linked into the binary ---"
-          grep -q "usermod libraries found in binary: wled-usermod-auto-brightness" build.log
+          # Check the linker map, not the log: the "usermod libraries found in
+          # binary" INFO line only exists on WLED main — release tags (v16.0.1)
+          # print different validator messages, so a log grep breaks per-ref.
+          grep -q "wled-usermod-auto-brightness" .pio/build/auto_brightness_ci/firmware.map
