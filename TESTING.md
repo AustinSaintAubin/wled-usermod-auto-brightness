@@ -1,8 +1,9 @@
-# Bench Test Checklist — v1.0.0
+# Bench Test Checklist — v1.0.1
 
 Hardware validation for the initial release (auto-brightness broken out of
-wled-usermod-sensors-i2c v1.0.16 + new VEML7700 / analog sources).
-After a clean pass: `git tag v1.0.0 && git push origin v1.0.0`.
+wled-usermod-sensors-i2c v1.0.16 + new VEML7700 / analog sources), plus the
+v1.0.1 source-conditional settings UI.
+After a clean pass: `git tag v1.0.1 && git push origin v1.0.1`.
 
 > ℹ️ **Migration note:** auto-brightness settings from wled-usermod-sensors-i2c are
 > **not** migrated (different config key) — re-enter them once under
@@ -19,6 +20,10 @@ After a clean pass: `git tag v1.0.0 && git push origin v1.0.0`.
 - [ ] Calibration (Dark/Bright × ADC Raw|Lux), Lux/Brightness 2×2, and Off When Dark
       tables all render with their inputs inside
 - [ ] Source dropdown shows Auto / BH1750FVI / VEML7700 / Analog; value saves/reloads
+- [ ] Conditional fields (v1.0.1): switching Source shows/hides live — BH1750 Address
+      only on Auto/BH1750; Analog Pin + Calibration table only on Analog; hidden
+      fields keep their values across a Save (set Analog Pin, switch to BH1750,
+      Save, switch back → pin value still there)
 - [ ] ↻ Refresh returns a genuinely fresh reading; with no sensor wired the table
       shows "(no reading — check sensor)"; unticked Enabled shows "(usermod disabled)"
 - [ ] Threshold clamps: On Above < Off Below auto-corrects; Lux Max ≤ Lux Min corrects;

@@ -26,7 +26,7 @@
 #define USERMOD_ID_AUTO_BRIGHTNESS 901
 #endif
 
-#define AUTO_BRIGHTNESS_VERSION "1.0.0"  // keep in sync with library.json (CI-checked)
+#define AUTO_BRIGHTNESS_VERSION "1.0.1"  // keep in sync with library.json (CI-checked)
 
 #define AUTOBRI_PROBE_INTERVAL_MS 30000UL   // re-probe cadence while no sensor is found
 #define AUTOBRI_MQTT_HEARTBEAT_MS 300000UL  // forced lux republish (keeps HA alive)
@@ -581,7 +581,7 @@ public:
     oappend(F("var pa=E['Cal Dark Raw'].parentNode;F.forEach(function(n){strip(E[n]);});"));
     oappend(F("var ref=hid(E['Cal Dark Raw'])||E['Cal Dark Raw'];"));
     oappend(F("function C(t,x,hd){var c=d.createElement(t);if(x!=null)c.textContent=x;c.style.padding='1px 7px';c.style.textAlign='center';if(hd)c.style.borderBottom='1px solid #666';return c;}"));
-    oappend(F("var T=d.createElement('table');T.style.borderCollapse='collapse';T.style.margin='4px auto 6px';"));
+    oappend(F("var T=d.createElement('table');T.id='abriCal';T.style.borderCollapse='collapse';T.style.margin='4px auto 6px';"));
     oappend(F("var h=d.createElement('tr');h.appendChild(C('th','Calibration',1));h.appendChild(C('th','ADC Raw',1));h.appendChild(C('th','Lux (lx)',1));T.appendChild(h);"));
     oappend(F("var r1=d.createElement('tr'),a1=C('td'),b1=C('td');r1.appendChild(C('th','Dark'));r1.appendChild(a1);r1.appendChild(b1);T.appendChild(r1);"));
     oappend(F("var r2=d.createElement('tr'),a2=C('td'),b2=C('td');r2.appendChild(C('th','Bright'));r2.appendChild(a2);r2.appendChild(b2);T.appendChild(r2);"));
@@ -650,6 +650,26 @@ public:
     oappend(F("var an=nx?nx.nextSibling:sec.querySelector('hr.sml');function ins(n){sec.insertBefore(n,an||null);}"));
     oappend(F("ins(hr);ins(p);ins(T);ins(bw);"));
     oappend(F("refresh();}catch(e){}})();"));
+
+    // Source-conditional visibility: hide fields that don't apply to the
+    // selected Source (BH1750 Address for VEML/Analog; Analog Pin + the
+    // calibration table for I2C sources). Rows are wrapped in a div and
+    // toggled via display:none — never `disabled`, and never removed — so the
+    // hidden inputs still submit on Save and their values persist. Must run
+    // AFTER the calibration-table IIFE (targets #abriCal); same insert-then-
+    // move discipline as the tables (wrapper enters the DOM before nodes move).
+    oappend(F("(function(){try{var P='Auto Brightness:Light Sensor:';"));
+    oappend(F("function vis(n){var a=d.getElementsByName(P+n);return a.length?a[a.length-1]:null;}"));
+    oappend(F("var sel=vis('Source'),bh=vis('BH1750 Address'),ap=vis('Analog Pin'),ct=d.getElementById('abriCal');"));
+    oappend(F("if(!sel||!bh||!ap||!ct)return;"));
+    oappend(F("function wrap(e){var s=e;while(s.previousSibling&&s.previousSibling.nodeType==3)s=s.previousSibling;"));
+    oappend(F("var w=d.createElement('div');e.parentNode.insertBefore(w,s);"));
+    oappend(F("var n=s;while(n){var q=n.nextSibling,b=(n.nodeType==1&&n.tagName=='BR');w.appendChild(n);if(b)break;n=q;}return w;}"));
+    oappend(F("var wb=wrap(bh),wa=wrap(ap);"));
+    oappend(F("function upd(){var v=sel.value;wb.style.display=(v=='0'||v=='1')?'':'none';"));
+    oappend(F("var an=(v=='3');wa.style.display=an?'':'none';ct.style.display=an?'':'none';}"));
+    oappend(F("sel.addEventListener('change',upd);upd();"));
+    oappend(F("}catch(e){}})();"));
   }
 
   void addToConfig(JsonObject &root) {
