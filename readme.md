@@ -77,7 +77,7 @@ you don't copy it into the WLED source tree. See the WLED docs:
    custom_usermods = https://github.com/AustinSaintAubin/wled-usermod-auto-brightness.git#main
    ```
    PlatformIO fetches it automatically — no manual copy and no git submodule needed. The `wled-`
-   library name is auto-recognized as a usermod. Pin a release with `#v1.0.0` instead of `#main`
+   library name is auto-recognized as a usermod. Pin a release with `#v1.0.4` instead of `#main`
    if you prefer a fixed version. For local development you can instead point at a checkout:
    `custom_usermods = symlink:///absolute/path/to/wled-usermod-auto-brightness`.
 
