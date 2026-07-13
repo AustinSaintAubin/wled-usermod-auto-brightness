@@ -26,7 +26,7 @@
 #define USERMOD_ID_AUTO_BRIGHTNESS 901
 #endif
 
-#define AUTO_BRIGHTNESS_VERSION "1.0.2"  // keep in sync with library.json (CI-checked)
+#define AUTO_BRIGHTNESS_VERSION "1.0.3"  // keep in sync with library.json (CI-checked)
 
 #define AUTOBRI_PROBE_INTERVAL_MS 30000UL   // re-probe cadence while no sensor is found
 #define AUTOBRI_MQTT_HEARTBEAT_MS 300000UL  // forced lux republish (keeps HA alive)
@@ -546,6 +546,15 @@ public:
     // change degrades to plain fields. See AGENTS.md "Settings-UI quirks" before editing
     // — the JS is verified out-of-band by scratch jsdom tests against a faithful DOM.
 
+    // Version badge in the usermod's <h3> heading (AUTO_BRIGHTNESS_VERSION via literal
+    // concat, so it can never drift). Anchor: first field -> div.sec -> its h3.
+    oappend(F("(function(){var a=d.getElementsByName('Auto Brightness:Enabled');if(!a.length)return;"
+              "var s=a[a.length-1];while(s&&!(s.tagName=='DIV'&&s.className=='sec'))s=s.parentNode;"
+              "var h=s?s.querySelector('h3'):null;if(!h)return;"
+              "var v=document.createElement('span');v.textContent='v" AUTO_BRIGHTNESS_VERSION "';"
+              "v.style.cssText='font-size:12px;font-weight:400;opacity:.6;margin-left:8px';"
+              "h.appendChild(v);})();"));
+
     // ---- style ----
     oappend(F("(function(){var s=document.createElement('style');s.innerHTML="));
     oappend(F("'.abrih{margin:16px 14px 6px;padding-bottom:2px;font-weight:600;color:#4aa3ff;border-bottom:1px solid #2c2c2c;letter-spacing:.3px}'"));
@@ -620,10 +629,13 @@ public:
     // genuinely fresh reading — the raw ADC value is what you read off to fill the
     // calibration table). Inserted before the first group header. ----
     oappend(F("(function(){try{if(d.getElementById('abriRd'))return;var en=d.getElementsByName('Auto Brightness:Enabled');if(!en.length)return;var cb=en[en.length-1],sec=cb;while(sec&&!(sec.nodeType==1&&sec.tagName=='DIV'&&sec.className=='sec'))sec=sec.parentNode;if(!sec)return;"));
-    oappend(F("var card=d.createElement('div');card.className='abricard';var p=d.createElement('p');p.className='abrih';p.textContent='Live';card.appendChild(p);"));
-    oappend(F("var T=d.createElement('table');T.id='abriRd';T.className='abritbl';card.appendChild(T);"));
-    oappend(F("function row(k,v,hd){var tr=d.createElement('tr');var a=d.createElement(hd?'th':'td');a.textContent=k;var b=d.createElement(hd?'th':'td');b.textContent=v;b.style.textAlign='right';tr.appendChild(a);tr.appendChild(b);T.appendChild(tr);}"));
-    oappend(F("function refresh(){T.innerHTML='';row('Reading','Value',1);fetch('/json/info').then(function(r){return r.json();}).then(function(j){var u=(j&&j.u)||{},K=['Light Source','Ambient Light','Ambient Light Raw','Brightness Control'],any=0;K.forEach(function(k){if(!(k in u))return;any=1;var v=u[k];row(k,Array.isArray(v)?v.filter(function(x){return x!==''&&x!=null;}).join(' '):(''+v));});if(!any)row(cb.checked?'(no reading \\u2014 check sensor)':'(usermod disabled)','');}).catch(function(){row('(fetch failed)','');});}"));
+    oappend(F("var card=d.createElement('div');card.className='abricard';var p=d.createElement('p');p.className='abrih';p.textContent='Live';p.style.margin='2px 0 8px';card.appendChild(p);"));
+    // Centered key->value readout (no column header): label muted + left, value left a
+    // fixed distance away with tabular figures, table centered as a block — so the card
+    // reads as one centered stack (title / readout / button) instead of edge-justified.
+    oappend(F("var T=d.createElement('table');T.id='abriRd';T.className='abritbl';T.style.margin='6px auto 2px';card.appendChild(T);"));
+    oappend(F("function row(k,v){var tr=d.createElement('tr');var a=d.createElement('td');a.textContent=k;a.style.opacity='.6';var b=d.createElement('td');b.textContent=v;b.style.paddingLeft='22px';b.style.fontVariantNumeric='tabular-nums';tr.appendChild(a);tr.appendChild(b);T.appendChild(tr);}"));
+    oappend(F("function refresh(){T.innerHTML='';fetch('/json/info').then(function(r){return r.json();}).then(function(j){var u=(j&&j.u)||{},K=['Light Source','Ambient Light','Ambient Light Raw','Brightness Control'],any=0;K.forEach(function(k){if(!(k in u))return;any=1;var v=u[k];row(k,Array.isArray(v)?v.filter(function(x){return x!==''&&x!=null;}).join(' '):(''+v));});if(!any)row(cb.checked?'(no reading \\u2014 check sensor)':'(usermod disabled)','');}).catch(function(){row('(fetch failed)','');});}"));
     oappend(F("function reread(){fetch('/json/state',{method:'POST',headers:{'Content-Type':'application/json'},body:'{\"AutoBri\":{\"read\":true}}'}).then(function(){setTimeout(refresh,400);}).catch(function(){refresh();});}"));
     oappend(F("var btn=d.createElement('button');btn.type='button';btn.textContent='\\u21bb Refresh';btn.addEventListener('click',reread);var bw=d.createElement('div');bw.style.marginTop='4px';bw.appendChild(btn);card.appendChild(bw);"));
     oappend(F("var anchor=sec.querySelector('.abrih')||sec.querySelector('.abritbl');sec.insertBefore(card,anchor||null);refresh();}catch(e){}})();"));

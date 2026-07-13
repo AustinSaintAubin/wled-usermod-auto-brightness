@@ -1,9 +1,10 @@
-# Bench Test Checklist — v1.0.2
+# Bench Test Checklist — v1.0.3
 
 Hardware validation for the initial release (auto-brightness broken out of
 wled-usermod-sensors-i2c v1.0.16 + new VEML7700 / analog sources), plus the
-v1.0.2 word-clock-style settings UI (tables, Analog Pin dropdown, conditional rows).
-After a clean pass: `git tag v1.0.2 && git push origin v1.0.2`.
+v1.0.2 word-clock-style settings UI (tables, Analog Pin dropdown, conditional rows)
+and the v1.0.3 Live-card rebalance.
+After a clean pass: `git tag v1.0.3 && git push origin v1.0.3`.
 
 > The injected settings JS is regression-tested off-device with a jsdom replica of WLED's
 > settings DOM: `cd tools && npm i jsdom && node settings-ui.test.js`. A clean compile +
@@ -22,6 +23,9 @@ After a clean pass: `git tag v1.0.2 && git push origin v1.0.2`.
 - [ ] Word-clock style renders (v1.0.2): blue group headers with underline rule, the
       Live card, and all settings laid out as tables — no orphaned labels, no field
       stacked above its control
+- [ ] Live card (v1.0.3) is a tidy centered key→value list: muted labels, values aligned
+      a consistent distance to the right (not flung to the card edge), no "Reading/Value"
+      header row; Refresh button centered below
 - [ ] Master row reads "Enable ☑" with the "master switch — I2C sources…" hint on the
       line **below** it
 - [ ] Tables render with inputs inside: Light Sensor (Source / BH1750 address / Analog

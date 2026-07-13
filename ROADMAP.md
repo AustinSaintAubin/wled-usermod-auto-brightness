@@ -63,6 +63,12 @@ honest: when something ships, move its line to the Done log with the version.
 
 ## Done log
 
+- 2026-07-13 — v1.0.3 Live-card visual balance (unbenched — TESTING.md §1): the Live
+  readout was edge-justified (values right-aligned to the far edge) while the title and
+  Refresh button were centered, leaving short rows with a disconnected gap. Reworked into
+  a centered key→value list — muted labels, values left-aligned a fixed distance away
+  with tabular figures, redundant "Reading/Value" header dropped. JS-only; both CI builds
+  link; `tools/settings-ui.test.js` still green.
 - 2026-07-12 — v1.0.2 word-clock-style settings UI (unbenched — TESTING.md §1): whole
   page rebuilt on the sibling word-clock's look & feel (injected `abri*` stylesheet,
   generic `abritbl` field-into-table mover, `abrilbl` relabel). Fixes the v1.0.1
