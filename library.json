@@ -1,6 +1,6 @@
 {
   "name": "wled-usermod-auto-brightness",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "license": "MIT",
   "description": "Ambient-light auto-brightness usermod for WLED: drives overall LED brightness from a BH1750FVI or VEML7700 I2C lux sensor (selectable or auto-detected) or an analog photocell/LDR, with dark-off, manual offset tracking, and optional MQTT / Home Assistant publishing.",
   "repository": { "type": "git", "url": "https://github.com/AustinSaintAubin/wled-usermod-auto-brightness.git" },

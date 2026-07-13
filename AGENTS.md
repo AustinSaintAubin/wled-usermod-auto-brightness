@@ -120,12 +120,23 @@ In file order:
   (`createMqttSensor`/`createMqttSwitch` + shared `addDiscoveryCommon` using WLED's
   `/status` LWT), `mqttInitialize()` publishes-or-clears retained configs, serviced via
   the `discoveryDirty`/`switchPubDirty` flags from `loop()` only while connected.
-- **`appendConfigData()`** — entire settings UI as injected JS (see quirks below): Source
-  + BH1750-address dropdowns, hints, Reset Offset instant button (POSTs
-  `{"AutoBri":{"resetOffset":true}}`), three table IIFEs (calibration 2×2, Lux/Brightness
-  2×2, Off When Dark), and the Live readout block (`id='abriRd'`, filters `/json/info` `u`
-  by the explicit key list `Light Source` / `Ambient Light` / `Ambient Light Raw` /
-  `Brightness Control`).
+- **`appendConfigData()`** — entire settings UI as injected JS, styled after the sibling
+  word-clock usermod (v1.0.2+, see quirks below). Structure: an injected `<style>` (`abri*`
+  classes), two helpers — `abritbl(hdr, rows)` (moves the fields named in each row into a
+  table; see the field-mover quirk) and `abrilbl(fld, txt)` (relabel) — then Source /
+  BH1750-address / **Analog Pin** dropdowns (the Analog Pin option list is emitted by a
+  C++ loop over `PinManager::isAnalogPin()`, so only chip-valid ADC pins + "unused" show),
+  five `abritbl` tables (Light-Sensor source/addr/pin, calibration 2×2 `id='abriCal'`,
+  Lux/Brightness 2×2, Brightness settings, Off When Dark, MQTT/HA), the `abrilbl` master
+  relabel ("Enable"), the Live readout card (`id='abriRd'`, `.abricard`, filters
+  `/json/info` `u` by the explicit key list `Light Source` / `Ambient Light` /
+  `Ambient Light Raw` / `Brightness Control`), the hints (master hint on its own line;
+  field hints land in the value cells because tables are built first), the Reset Offset
+  button (POSTs `{"AutoBri":{"resetOffset":true}}`) dropped into the Allow-Manual-Offset
+  cell, and the Source-conditional visibility IIFE (toggles the BH1750-address `<tr>`,
+  the Analog-pin `<tr>`, and `#abriCal` via `display:none`). The injected JS is verified
+  out-of-band by a jsdom test against a **faithful** WLED settings DOM (see quirks) — the
+  suite lives in the release commit's scratch notes; regenerate it before touching this.
 - **`addToConfig` / `readFromConfig`** — schema per the table above; clamps at the end of
   `readFromConfig` (source range, BH address whitelist, cal-point validity, lux/bri range
   ordering, smoothing ≤95, interval 1–600, dark-off never inverted). I²C-pin guard: every
@@ -142,13 +153,22 @@ table scoops every `Sensor `-prefixed key from `/json/info` when both mods are i
 - All UI code is JS inside `oappend(F("…"))` C-strings. **One unbalanced quote silently
   breaks the entire settings page** (fields render raw). A successful compile does NOT
   prove the UI works — check in a browser.
-- WLED renders each usermod field as `label <input><br>`; checkboxes carry a preceding
-  hidden input that must move together with the visible one (the `hid()` helper in each
-  IIFE).
-- **Insert tables into the DOM *before* moving inputs into them.** `insertBefore` with a
-  reference node that was already moved throws, and the `try{}catch(e){}` guard silently
-  eats the whole table — this exact bug shipped an empty section in sensors-i2c up to
-  v1.0.15 (fixed v1.0.16). Every table IIFE here follows insert-then-move; keep it that way.
+- WLED renders each usermod field as `label-text <input hidden> <input|select><br>` —
+  **every field carries a preceding hidden input**, not only checkboxes (checkbox: a
+  `value=false` partner; everything else: a type-marker whose value is `"number"`/`"text"`,
+  which is also why the field's real value is the *second* same-named entry in the form
+  POST). The safe way to relocate a field is to move **all** elements sharing its name
+  (`getElementsByName`) as a unit — that's what `abritbl`'s `mv()` does. v1.0.1 tried to
+  wrap a single element and left the label + hidden marker behind, orphaning the label and
+  stacking the dropdown (fixed v1.0.2). A jsdom replica of the DOM is only trustworthy if
+  it emits this hidden marker before every field — the v1.0.1 replica didn't, so it passed
+  a broken UI. Port WLED's `addField`/`addDD` verbatim when building a replica.
+- `abritbl` inserts the table at the first field's original position (the label text node
+  is the anchor) **after** collecting the anchor but moves nodes into rows it has already
+  built, so there's no already-moved-reference-node hazard. (The older per-section IIFEs
+  had to insert-before-move to avoid `insertBefore` throwing on a moved node — a bug that
+  shipped an empty section in sensors-i2c up to v1.0.15, fixed v1.0.16. `abritbl` sidesteps
+  it structurally.)
 - Every IIFE is guarded (`if(!ok)return`) so a WLED settings-DOM change degrades to plain
   fields instead of a broken page.
 - Field names in JS must match config keys exactly: `'Auto Brightness:<group>:<field>'`.

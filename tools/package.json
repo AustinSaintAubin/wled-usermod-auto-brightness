@@ -1,0 +1,7 @@
+{
+  "name": "auto-brightness-tools",
+  "private": true,
+  "description": "Dev-only tests for the injected settings-page JS (not shipped to devices).",
+  "scripts": { "test": "node settings-ui.test.js" },
+  "devDependencies": { "jsdom": "^24.0.0" }
+}

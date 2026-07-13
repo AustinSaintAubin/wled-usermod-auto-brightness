@@ -63,6 +63,15 @@ honest: when something ships, move its line to the Done log with the version.
 
 ## Done log
 
+- 2026-07-12 — v1.0.2 word-clock-style settings UI (unbenched — TESTING.md §1): whole
+  page rebuilt on the sibling word-clock's look & feel (injected `abri*` stylesheet,
+  generic `abritbl` field-into-table mover, `abrilbl` relabel). Fixes the v1.0.1
+  row-hiding bug (orphaned "Analog Pin" label / stacked "BH1750 Address" — WLED emits a
+  hidden marker before *every* field, not just checkboxes; moving the field as a whole
+  `getElementsByName` set fixes it). Analog Pin is now a chip-aware GPIO dropdown
+  (`PinManager::isAnalogPin`); master row reads "Enable" with the hint below. Injected JS
+  regression-tested via `tools/settings-ui.test.js` (jsdom against a faithful WLED DOM);
+  both CI builds link.
 - 2026-07-12 — v1.0.1 conditional settings UI (unbenched — new TESTING.md §1 item):
   Source dropdown live-hides inapplicable fields (BH1750 Address on VEML/Analog;
   Analog Pin + calibration table on I²C sources) via display:none so hidden values

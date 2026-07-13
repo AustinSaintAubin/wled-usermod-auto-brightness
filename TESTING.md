@@ -1,9 +1,13 @@
-# Bench Test Checklist — v1.0.1
+# Bench Test Checklist — v1.0.2
 
 Hardware validation for the initial release (auto-brightness broken out of
 wled-usermod-sensors-i2c v1.0.16 + new VEML7700 / analog sources), plus the
-v1.0.1 source-conditional settings UI.
-After a clean pass: `git tag v1.0.1 && git push origin v1.0.1`.
+v1.0.2 word-clock-style settings UI (tables, Analog Pin dropdown, conditional rows).
+After a clean pass: `git tag v1.0.2 && git push origin v1.0.2`.
+
+> The injected settings JS is regression-tested off-device with a jsdom replica of WLED's
+> settings DOM: `cd tools && npm i jsdom && node settings-ui.test.js`. A clean compile +
+> green jsdom run still does NOT replace the §1 browser check.
 
 > ℹ️ **Migration note:** auto-brightness settings from wled-usermod-sensors-i2c are
 > **not** migrated (different config key) — re-enter them once under
@@ -15,15 +19,21 @@ After a clean pass: `git tag v1.0.1 && git push origin v1.0.1`.
 
 ## 1. Flash & settings page — ⏳ not tested yet
 
-- [ ] Settings page renders: Enabled + hint, Live table, Light Sensor / Brightness /
-      Off When Dark / MQTT & Home Assistant sub-sections in order
-- [ ] Calibration (Dark/Bright × ADC Raw|Lux), Lux/Brightness 2×2, and Off When Dark
-      tables all render with their inputs inside
+- [ ] Word-clock style renders (v1.0.2): blue group headers with underline rule, the
+      Live card, and all settings laid out as tables — no orphaned labels, no field
+      stacked above its control
+- [ ] Master row reads "Enable ☑" with the "master switch — I2C sources…" hint on the
+      line **below** it
+- [ ] Tables render with inputs inside: Light Sensor (Source / BH1750 address / Analog
+      pin), Calibration (Dark/Bright × ADC raw|Lux), Lux/Brightness 2×2, Brightness
+      settings, Off When Dark, MQTT & Home Assistant
 - [ ] Source dropdown shows Auto / BH1750FVI / VEML7700 / Analog; value saves/reloads
-- [ ] Conditional fields (v1.0.1): switching Source shows/hides live — BH1750 Address
-      only on Auto/BH1750; Analog Pin + Calibration table only on Analog; hidden
-      fields keep their values across a Save (set Analog Pin, switch to BH1750,
-      Save, switch back → pin value still there)
+- [ ] Analog Pin is a **dropdown** (v1.0.2) listing only ADC-capable GPIOs + "unused"
+      (classic ESP32: 32–39); a previously-saved pin stays selected
+- [ ] Conditional fields: switching Source shows/hides whole rows live — BH1750 address
+      only on Auto/BH1750; Analog pin + Calibration table only on Analog; hidden fields
+      keep their values across a Save (set Analog Pin, switch to BH1750, Save, switch
+      back → pin value still there)
 - [ ] ↻ Refresh returns a genuinely fresh reading; with no sensor wired the table
       shows "(no reading — check sensor)"; unticked Enabled shows "(usermod disabled)"
 - [ ] Threshold clamps: On Above < Off Below auto-corrects; Lux Max ≤ Lux Min corrects;

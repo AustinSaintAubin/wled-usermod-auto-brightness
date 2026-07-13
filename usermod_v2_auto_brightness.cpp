@@ -26,7 +26,7 @@
 #define USERMOD_ID_AUTO_BRIGHTNESS 901
 #endif
 
-#define AUTO_BRIGHTNESS_VERSION "1.0.1"  // keep in sync with library.json (CI-checked)
+#define AUTO_BRIGHTNESS_VERSION "1.0.2"  // keep in sync with library.json (CI-checked)
 
 #define AUTOBRI_PROBE_INTERVAL_MS 30000UL   // re-probe cadence while no sensor is found
 #define AUTOBRI_MQTT_HEARTBEAT_MS 300000UL  // forced lux republish (keeps HA alive)
@@ -540,116 +540,109 @@ public:
   }
 
   void appendConfigData() {
-    // light-source dropdown
+    // The settings UI adopts the sibling word-clock usermod's look & feel: a small
+    // injected stylesheet (abri* classes), a generic field-into-table mover (abritbl),
+    // and a relabel helper (abrilbl). Everything is guarded so a WLED settings-DOM
+    // change degrades to plain fields. See AGENTS.md "Settings-UI quirks" before editing
+    // — the JS is verified out-of-band by scratch jsdom tests against a faithful DOM.
+
+    // ---- style ----
+    oappend(F("(function(){var s=document.createElement('style');s.innerHTML="));
+    oappend(F("'.abrih{margin:16px 14px 6px;padding-bottom:2px;font-weight:600;color:#4aa3ff;border-bottom:1px solid #2c2c2c;letter-spacing:.3px}'"));
+    oappend(F("+'.abricard{background:#101010;border:1px solid #2c2c2c;border-radius:8px;padding:6px 10px;margin:6px 14px;display:block}'"));
+    oappend(F("+'.abritbl{border-collapse:collapse;margin:4px 14px 8px}'"));
+    oappend(F("+'.abricard .abritbl{margin:2px 0}'"));
+    oappend(F("+'.abritbl th,.abritbl td{padding:3px 12px 3px 0;text-align:left;vertical-align:middle}'"));
+    oappend(F("+'.abritbl th{color:#4aa3ff;font-weight:600;border-bottom:1px solid #2c2c2c}'"));
+    oappend(F("+'.abritbl select,.abritbl input:not([type=checkbox]){margin:0;vertical-align:middle;height:26px;box-sizing:border-box}'"));
+    oappend(F("+'.abritbl input:not([type=checkbox]){width:84px}'"));
+    oappend(F("+'.abritbl input[type=checkbox]{margin:0;vertical-align:middle}'"));
+    oappend(F("+'.abritbl button{margin:0 0 0 6px;vertical-align:middle;cursor:pointer;border-radius:6px;padding:2px 9px}'"));
+    oappend(F("+'.abrii{font-size:11px;opacity:.6;font-style:normal;margin-left:6px}'"));
+    oappend(F(";document.head.appendChild(s);})();"));
+
+    // ---- helpers ----
+    // abritbl(hdr, rows): rows = [rowLabel, [fieldSuffix...], extra(tr,cells)|null].
+    // Moves ALL elements sharing each name — the hidden type-marker input WLED emits
+    // before every field AND the visible input/select — into the row's cells, so the
+    // markers travel with their field (moving a single element orphaned the label; see
+    // AGENTS.md). Cleans the stray label text + trailing <br>, inserts the table where
+    // the first field was, returns it (for id-tagging).
+    oappend(F("abritbl=function(hdr,rows){var ok=0;for(var r=0;r<rows.length;r++)if(d.getElementsByName('Auto Brightness:'+rows[r][1][0]).length){ok=1;break;}if(!ok)return null;"));
+    oappend(F("var t=document.createElement('table');t.className='abritbl';"));
+    oappend(F("var h=document.createElement('tr');for(var i=0;i<hdr.length;i++){var th=document.createElement('th');th.textContent=hdr[i];h.appendChild(th);}t.appendChild(h);"));
+    oappend(F("var anchor=null,kill=[];"));
+    oappend(F("function mv(td,nm){var e=d.getElementsByName('Auto Brightness:'+nm);if(!e.length)return;var lbl=e[0].previousSibling,af=e[e.length-1].nextSibling;if(!anchor)anchor=(lbl&&lbl.nodeType===3)?lbl:e[0];var a=[];for(var k=0;k<e.length;k++)a.push(e[k]);for(k=0;k<a.length;k++)td.appendChild(a[k]);if(lbl&&lbl.nodeType===3)kill.push(lbl);if(af&&af.nodeName==='BR')kill.push(af);}"));
+    oappend(F("for(var ri=0;ri<rows.length;ri++){var row=rows[ri];var tr=document.createElement('tr');var c0=document.createElement('td');c0.textContent=row[0];tr.appendChild(c0);var cells=[];for(var fi=0;fi<row[1].length;fi++){var td=document.createElement('td');mv(td,row[1][fi]);tr.appendChild(td);cells.push(td);}if(row[2])row[2](tr,cells);t.appendChild(tr);}"));
+    oappend(F("if(anchor&&anchor.parentNode)anchor.parentNode.insertBefore(t,anchor);"));
+    oappend(F("for(ri=0;ri<kill.length;ri++)if(kill[ri].parentNode)kill[ri].parentNode.removeChild(kill[ri]);return t;};"));
+    oappend(F("abrilbl=function(fld,t){var a=d.getElementsByName('Auto Brightness:'+fld);if(!a.length)return;var r=a[0].previousSibling;if(r&&r.nodeType===3)r.textContent=' '+t+' ';};"));
+
+    // ---- restyle WLED's auto group titles (<p><u>Group</u></p>) into .abrih ----
+    oappend(F("(function(){var secs=d.getElementsByClassName('sec'),sec=null;for(var i=0;i<secs.length;i++){var h=secs[i].querySelector('h3');if(h&&h.textContent==='Auto Brightness'){sec=secs[i];break;}}if(!sec)return;var ps=sec.querySelectorAll('p');for(var j=0;j<ps.length;j++){var u=ps[j].querySelector('u');if(!u)continue;ps[j].className='abrih';ps[j].textContent=u.textContent;var pv=ps[j].previousElementSibling;if(pv&&pv.tagName==='HR')pv.style.display='none';}})();"));
+
+    // ---- dropdowns (before tables so the <select> carries the field name) ----
     oappend(F("dd=addDropdown('Auto Brightness:Light Sensor','Source');"));
     oappend(F("addOption(dd,'Auto (I2C: BH1750, then VEML7700)','0');"));
     oappend(F("addOption(dd,'BH1750FVI (I2C)','1');"));
     oappend(F("addOption(dd,'VEML7700 (I2C)','2');"));
     oappend(F("addOption(dd,'Analog (photocell / LDR)','3');"));
-    // BH1750 address dropdown (0x23 default / 0x5C when ADDR pin high)
     oappend(F("dd=addDropdown('Auto Brightness:Light Sensor','BH1750 Address');"));
     oappend(F("addOption(dd,'0x23 (default)','35');"));
     oappend(F("addOption(dd,'0x5C','92');"));
-    // unit / help hints
-    oappend(F("addInfo('Auto Brightness:Enabled',1,'master switch — I2C sources need the global I2C pins (top of this page)');"));
-    oappend(F("addInfo('Auto Brightness:Light Sensor:Analog Pin',1,'ADC GPIO, Analog source only (classic ESP32: 32-39); -1 = unset');"));
-    oappend(F("addInfo('Auto Brightness:Brightness:Smoothing',1,'% (0=off)');"));
-    oappend(F("addInfo('Auto Brightness:Brightness:Update Interval',1,'sec');"));
-    oappend(F("addInfo('Auto Brightness:Off When Dark:Enabled',1,'turn strip fully off in darkness');"));
+    // Analog Pin dropdown: only the ADC1-capable GPIOs this chip actually accepts
+    // (PinManager::isAnalogPin is chip-aware and matches what setAnalogPin() allows),
+    // plus "unused". A saved pin that's no longer valid falls back to the unused option.
+    oappend(F("dd=addDropdown('Auto Brightness:Light Sensor','Analog Pin');"));
+    oappend(F("addOption(dd,'unused','-1');"));
+    {
+      char buf[40];
+      for (int g = 0; g <= 48; g++) {
+        if (PinManager::isAnalogPin((byte)g)) {
+          snprintf_P(buf, sizeof(buf), PSTR("addOption(dd,'%d','%d');"), g, g);
+          oappend(buf);
+        }
+      }
+    }
 
-    // Instant "Reset Offset" button: sends the resetOffset JSON command directly,
-    // no Save needed.
-    oappend(F("(function(){try{var en=d.getElementsByName('Auto Brightness:Brightness:Allow Manual Offset');if(!en.length)return;var e=en[en.length-1];"));
-    oappend(F("var btn=d.createElement('button');btn.type='button';btn.className='btn sml';btn.textContent='Reset Offset';"));
-    oappend(F("btn.addEventListener('click',function(){fetch('/json/state',{method:'POST',headers:{'Content-Type':'application/json'},body:'{\"AutoBri\":{\"resetOffset\":true}}'}).then(function(){btn.textContent='Offset Cleared \\u2713';setTimeout(function(){btn.textContent='Reset Offset';},1500);}).catch(function(){});});"));
-    oappend(F("var m=e.nextSibling;while(m&&!(m.nodeType==1&&m.tagName=='BR'))m=m.nextSibling;var ref=m?m.nextSibling:null;"));
-    oappend(F("e.parentNode.insertBefore(btn,ref);e.parentNode.insertBefore(d.createElement('br'),btn.nextSibling);"));
-    oappend(F("}catch(e){}})();"));
+    // ---- tables ----
+    oappend(F("abritbl(['Sensor','Value'],[['Source',['Light Sensor:Source']],['BH1750 address',['Light Sensor:BH1750 Address']],['Analog pin',['Light Sensor:Analog Pin']]]);"));
+    oappend(F("(function(){var t=abritbl(['Calibration','ADC raw','Lux'],[['Dark',['Light Sensor:Cal Dark Raw','Light Sensor:Cal Dark Lux']],['Bright',['Light Sensor:Cal Bright Raw','Light Sensor:Cal Bright Lux']]]);if(t)t.id='abriCal';})();"));
+    oappend(F("abritbl(['Range','Lux','Brightness'],[['Min',['Brightness:Lux Min','Brightness:Brightness Min']],['Max',['Brightness:Lux Max','Brightness:Brightness Max']]]);"));
+    oappend(F("abritbl(['Setting','Value'],[['Ambient control',['Brightness:Control Enabled']],['Smoothing',['Brightness:Smoothing']],['Update interval',['Brightness:Update Interval']],['Allow manual offset',['Brightness:Allow Manual Offset']]]);"));
+    oappend(F("abritbl(['Setting','Value'],[['Enabled',['Off When Dark:Enabled']],['Off below (lux)',['Off When Dark:Off Below Lux']],['On above (lux)',['Off When Dark:On Above Lux']]]);"));
+    oappend(F("abritbl(['Setting','Value'],[['Publish illuminance',['MQTT & Home Assistant:Publish Illuminance']],['Publish changes only',['MQTT & Home Assistant:Publish Changes Only']],['Home Assistant discovery',['MQTT & Home Assistant:Home Assistant Discovery']]]);"));
 
-    // Arrange the four analog calibration fields into a 2x2 table (rows
-    // Dark/Bright x columns ADC Raw | Lux), styled like WLED's settings tables.
-    // Moves the existing input nodes so their name/value are preserved; guarded
-    // so it no-ops if the settings DOM ever changes. NOTE: the table must be
-    // inserted into the DOM BEFORE the inputs are moved into it (insertBefore
-    // with an already-moved reference node throws and the guard eats the table).
-    oappend(F("(function(){try{var P='Auto Brightness:Light Sensor:';"));
-    oappend(F("function vis(n){var a=d.getElementsByName(P+n);return a.length?a[a.length-1]:null;}"));
-    oappend(F("function hid(e){var p=e.previousSibling;while(p&&p.nodeType!=1)p=p.previousSibling;return(p&&p.tagName=='INPUT'&&p.type=='hidden')?p:null;}"));
-    oappend(F("function strip(e){var s=hid(e)||e,n=s.previousSibling;while(n&&n.nodeType==3){var x=n;n=n.previousSibling;x.remove();}var m=e.nextSibling;while(m){var q=m.nextSibling,b=(m.nodeType==1&&m.tagName=='BR');m.remove();if(b)break;m=q;}}"));
-    oappend(F("var F=['Cal Dark Raw','Cal Dark Lux','Cal Bright Raw','Cal Bright Lux'],E={},ok=1;"));
-    oappend(F("F.forEach(function(n){E[n]=vis(n);if(!E[n])ok=0;});if(!ok)return;"));
-    oappend(F("var pa=E['Cal Dark Raw'].parentNode;F.forEach(function(n){strip(E[n]);});"));
-    oappend(F("var ref=hid(E['Cal Dark Raw'])||E['Cal Dark Raw'];"));
-    oappend(F("function C(t,x,hd){var c=d.createElement(t);if(x!=null)c.textContent=x;c.style.padding='1px 7px';c.style.textAlign='center';if(hd)c.style.borderBottom='1px solid #666';return c;}"));
-    oappend(F("var T=d.createElement('table');T.id='abriCal';T.style.borderCollapse='collapse';T.style.margin='4px auto 6px';"));
-    oappend(F("var h=d.createElement('tr');h.appendChild(C('th','Calibration',1));h.appendChild(C('th','ADC Raw',1));h.appendChild(C('th','Lux (lx)',1));T.appendChild(h);"));
-    oappend(F("var r1=d.createElement('tr'),a1=C('td'),b1=C('td');r1.appendChild(C('th','Dark'));r1.appendChild(a1);r1.appendChild(b1);T.appendChild(r1);"));
-    oappend(F("var r2=d.createElement('tr'),a2=C('td'),b2=C('td');r2.appendChild(C('th','Bright'));r2.appendChild(a2);r2.appendChild(b2);T.appendChild(r2);"));
-    oappend(F("pa.insertBefore(T,ref);"));
-    oappend(F("function mv(n,c){var e=E[n],g=hid(e);e.className='s';if(g)c.appendChild(g);c.appendChild(e);}"));
-    oappend(F("mv('Cal Dark Raw',a1);mv('Cal Dark Lux',b1);mv('Cal Bright Raw',a2);mv('Cal Bright Lux',b2);"));
-    oappend(F("}catch(e){}})();"));
+    // ---- master row relabel ----
+    oappend(F("abrilbl('Enabled','Enable');"));
 
-    // Arrange the four Lux/Brightness fields into a 2x2 mapping table
-    // (rows Min/Max x columns Lux|Brightness), same style/guards as above.
-    oappend(F("(function(){try{var P='Auto Brightness:Brightness:';"));
-    oappend(F("function vis(n){var a=d.getElementsByName(P+n);return a.length?a[a.length-1]:null;}"));
-    oappend(F("function hid(e){var p=e.previousSibling;while(p&&p.nodeType!=1)p=p.previousSibling;return(p&&p.tagName=='INPUT'&&p.type=='hidden')?p:null;}"));
-    oappend(F("function strip(e){var s=hid(e)||e,n=s.previousSibling;while(n&&n.nodeType==3){var x=n;n=n.previousSibling;x.remove();}var m=e.nextSibling;while(m){var q=m.nextSibling,b=(m.nodeType==1&&m.tagName=='BR');m.remove();if(b)break;m=q;}}"));
-    oappend(F("var F=['Lux Min','Lux Max','Brightness Min','Brightness Max'],E={},ok=1;"));
-    oappend(F("F.forEach(function(n){E[n]=vis(n);if(!E[n])ok=0;});if(!ok)return;"));
-    oappend(F("var pa=E['Lux Min'].parentNode;F.forEach(function(n){strip(E[n]);});"));
-    oappend(F("var ref=hid(E['Lux Min'])||E['Lux Min'];"));
-    oappend(F("function C(t,x,hd){var c=d.createElement(t);if(x!=null)c.textContent=x;c.style.padding='1px 7px';c.style.textAlign='center';if(hd)c.style.borderBottom='1px solid #666';return c;}"));
-    oappend(F("var T=d.createElement('table');T.style.borderCollapse='collapse';T.style.margin='4px auto 6px';"));
-    oappend(F("var h=d.createElement('tr');h.appendChild(C('th','',1));h.appendChild(C('th','Lux (lx)',1));h.appendChild(C('th','Brightness',1));T.appendChild(h);"));
-    oappend(F("var r1=d.createElement('tr'),a1=C('td'),b1=C('td');r1.appendChild(C('th','Min'));r1.appendChild(a1);r1.appendChild(b1);T.appendChild(r1);"));
-    oappend(F("var r2=d.createElement('tr'),a2=C('td'),b2=C('td');r2.appendChild(C('th','Max'));r2.appendChild(a2);r2.appendChild(b2);T.appendChild(r2);"));
-    oappend(F("pa.insertBefore(T,ref);"));
-    oappend(F("function mv(n,c){var e=E[n],g=hid(e);e.className='s';if(g)c.appendChild(g);c.appendChild(e);}"));
-    oappend(F("mv('Lux Min',a1);mv('Brightness Min',b1);mv('Lux Max',a2);mv('Brightness Max',b2);"));
-    oappend(F("}catch(e){}})();"));
-
-    // Arrange the two Off When Dark lux fields into a small table (rows
-    // Off Below / On Above x one Lux column), same style/guards as above.
-    oappend(F("(function(){try{var P='Auto Brightness:Off When Dark:';"));
-    oappend(F("function vis(n){var a=d.getElementsByName(P+n);return a.length?a[a.length-1]:null;}"));
-    oappend(F("function hid(e){var p=e.previousSibling;while(p&&p.nodeType!=1)p=p.previousSibling;return(p&&p.tagName=='INPUT'&&p.type=='hidden')?p:null;}"));
-    oappend(F("function strip(e){var s=hid(e)||e,n=s.previousSibling;while(n&&n.nodeType==3){var x=n;n=n.previousSibling;x.remove();}var m=e.nextSibling;while(m){var q=m.nextSibling,b=(m.nodeType==1&&m.tagName=='BR');m.remove();if(b)break;m=q;}}"));
-    oappend(F("var F=['Off Below Lux','On Above Lux'],E={},ok=1;"));
-    oappend(F("F.forEach(function(n){E[n]=vis(n);if(!E[n])ok=0;});if(!ok)return;"));
-    oappend(F("var pa=E['Off Below Lux'].parentNode;F.forEach(function(n){strip(E[n]);});"));
-    oappend(F("var ref=hid(E['Off Below Lux'])||E['Off Below Lux'];"));
-    oappend(F("function C(t,x,hd){var c=d.createElement(t);if(x!=null)c.textContent=x;c.style.padding='1px 7px';c.style.textAlign='center';if(hd)c.style.borderBottom='1px solid #666';return c;}"));
-    oappend(F("var T=d.createElement('table');T.style.borderCollapse='collapse';T.style.margin='4px auto 6px';"));
-    oappend(F("var h=d.createElement('tr');h.appendChild(C('th','',1));h.appendChild(C('th','Lux (lx)',1));T.appendChild(h);"));
-    oappend(F("var r1=d.createElement('tr'),a1=C('td');r1.appendChild(C('th','Off Below'));r1.appendChild(a1);T.appendChild(r1);"));
-    oappend(F("var r2=d.createElement('tr'),a2=C('td');r2.appendChild(C('th','On Above'));r2.appendChild(a2);T.appendChild(r2);"));
-    oappend(F("pa.insertBefore(T,ref);"));
-    oappend(F("function mv(n,c){var e=E[n],g=hid(e);e.className='s';if(g)c.appendChild(g);c.appendChild(e);}"));
-    oappend(F("mv('Off Below Lux',a1);mv('On Above Lux',a2);"));
-    oappend(F("}catch(e){}})();"));
-
-    // "Live" block between the master Enabled row and the Light Sensor group:
-    // source + lux + raw + control status from /json/info plus a Refresh button
-    // that takes a genuinely fresh reading (the raw ADC value is what you read
-    // off in dark/bright conditions to fill the calibration table).
-    oappend(F("(function(){try{if(d.getElementById('abriRd'))return;"));
-    oappend(F("var en=d.getElementsByName('Auto Brightness:Enabled');if(!en.length)return;"));
-    oappend(F("var cb=en[en.length-1],sec=cb;while(sec&&!(sec.nodeType==1&&sec.tagName=='DIV'&&sec.className=='sec'))sec=sec.parentNode;if(!sec)return;"));
-    oappend(F("function C(t,x,r,hd){var c=d.createElement(t);if(x!=null)c.textContent=x;c.style.padding='1px 10px';c.style.textAlign=r?'right':'left';if(hd){c.style.textAlign='center';c.style.borderBottom='1px solid #666';}return c;}"));
-    oappend(F("var T=d.createElement('table');T.id='abriRd';T.style.borderCollapse='collapse';T.style.margin='4px auto';T.style.minWidth='250px';"));
-    oappend(F("function row(k,v,hd){var tr=d.createElement('tr');tr.appendChild(C(hd?'th':'td',k,0,hd));tr.appendChild(C(hd?'th':'td',v,1,hd));T.appendChild(tr);}"));
-    oappend(F("function refresh(){T.innerHTML='';row('Reading','Value',1);fetch('/json/info').then(function(r){return r.json();}).then(function(j){var u=(j&&j.u)||{},K=['Light Source','Ambient Light','Ambient Light Raw','Brightness Control'],any=0;K.forEach(function(k){if(!(k in u))return;any=1;var v=u[k];row(k,Array.isArray(v)?v.filter(function(x){return x!==''&&x!=null;}).join(' '):(''+v));});if(!any)row(cb.checked?'(no reading — check sensor)':'(usermod disabled)','');}).catch(function(){row('(fetch failed)','');});}"));
-    oappend(F("var hr=d.createElement('hr');hr.className='sml';"));
-    oappend(F("var p=d.createElement('p'),u2=d.createElement('u');u2.textContent='Live';p.appendChild(u2);"));
+    // ---- "Live" readout card (source/lux/raw/control from /json/info; Refresh takes a
+    // genuinely fresh reading — the raw ADC value is what you read off to fill the
+    // calibration table). Inserted before the first group header. ----
+    oappend(F("(function(){try{if(d.getElementById('abriRd'))return;var en=d.getElementsByName('Auto Brightness:Enabled');if(!en.length)return;var cb=en[en.length-1],sec=cb;while(sec&&!(sec.nodeType==1&&sec.tagName=='DIV'&&sec.className=='sec'))sec=sec.parentNode;if(!sec)return;"));
+    oappend(F("var card=d.createElement('div');card.className='abricard';var p=d.createElement('p');p.className='abrih';p.textContent='Live';card.appendChild(p);"));
+    oappend(F("var T=d.createElement('table');T.id='abriRd';T.className='abritbl';card.appendChild(T);"));
+    oappend(F("function row(k,v,hd){var tr=d.createElement('tr');var a=d.createElement(hd?'th':'td');a.textContent=k;var b=d.createElement(hd?'th':'td');b.textContent=v;b.style.textAlign='right';tr.appendChild(a);tr.appendChild(b);T.appendChild(tr);}"));
+    oappend(F("function refresh(){T.innerHTML='';row('Reading','Value',1);fetch('/json/info').then(function(r){return r.json();}).then(function(j){var u=(j&&j.u)||{},K=['Light Source','Ambient Light','Ambient Light Raw','Brightness Control'],any=0;K.forEach(function(k){if(!(k in u))return;any=1;var v=u[k];row(k,Array.isArray(v)?v.filter(function(x){return x!==''&&x!=null;}).join(' '):(''+v));});if(!any)row(cb.checked?'(no reading \\u2014 check sensor)':'(usermod disabled)','');}).catch(function(){row('(fetch failed)','');});}"));
     oappend(F("function reread(){fetch('/json/state',{method:'POST',headers:{'Content-Type':'application/json'},body:'{\"AutoBri\":{\"read\":true}}'}).then(function(){setTimeout(refresh,400);}).catch(function(){refresh();});}"));
-    oappend(F("var btn=d.createElement('button');btn.type='button';btn.className='btn sml';btn.textContent='\\u21bb Refresh';btn.addEventListener('click',reread);"));
-    oappend(F("var bw=d.createElement('div');bw.appendChild(btn);"));
-    oappend(F("var nx=cb.nextSibling;while(nx&&!(nx.nodeType==1&&nx.tagName=='BR'))nx=nx.nextSibling;"));
-    oappend(F("var an=nx?nx.nextSibling:sec.querySelector('hr.sml');function ins(n){sec.insertBefore(n,an||null);}"));
-    oappend(F("ins(hr);ins(p);ins(T);ins(bw);"));
-    oappend(F("refresh();}catch(e){}})();"));
+    oappend(F("var btn=d.createElement('button');btn.type='button';btn.textContent='\\u21bb Refresh';btn.addEventListener('click',reread);var bw=d.createElement('div');bw.style.marginTop='4px';bw.appendChild(btn);card.appendChild(bw);"));
+    oappend(F("var anchor=sec.querySelector('.abrih')||sec.querySelector('.abritbl');sec.insertBefore(card,anchor||null);refresh();}catch(e){}})();"));
+
+    // ---- hints (master hint on its own line below the checkbox; field hints land
+    // inside their value cells because the tables have already been built) ----
+    oappend(F("addInfo('Auto Brightness:Enabled',1,\"<br><i class='abrii'>master switch \\u2014 I2C sources need the global I2C pins (top of this page)</i>\");"));
+    oappend(F("addInfo('Auto Brightness:Brightness:Smoothing',1,\"<i class='abrii'>% (0=off)</i>\");"));
+    oappend(F("addInfo('Auto Brightness:Brightness:Update Interval',1,\"<i class='abrii'>sec</i>\");"));
+    oappend(F("addInfo('Auto Brightness:Off When Dark:Enabled',1,\"<i class='abrii'>turn strip fully off in darkness</i>\");"));
+
+    // ---- Reset Offset button in the Allow Manual Offset value cell (POSTs the
+    // resetOffset command directly — no Save needed) ----
+    oappend(F("(function(){var a=d.getElementsByName('Auto Brightness:Brightness:Allow Manual Offset');if(!a.length)return;var cb=a[a.length-1],td=cb.parentNode;if(!td)return;var btn=d.createElement('button');btn.type='button';btn.textContent='Reset Offset';btn.addEventListener('click',function(){fetch('/json/state',{method:'POST',headers:{'Content-Type':'application/json'},body:'{\"AutoBri\":{\"resetOffset\":true}}'}).then(function(){btn.textContent='Offset Cleared \\u2713';setTimeout(function(){btn.textContent='Reset Offset';},1500);}).catch(function(){});});td.appendChild(btn);})();"));
+
+    // ---- Source-conditional visibility: hide the whole <tr> for BH1750 Address
+    // (VEML/Analog) and Analog Pin + calibration table (I2C sources). display:none,
+    // never removed, so the hidden fields still submit and their values persist. ----
+    oappend(F("(function(){try{var sel=d.getElementsByName('Auto Brightness:Light Sensor:Source');sel=sel.length?sel[sel.length-1]:null;var bh=d.getElementsByName('Auto Brightness:Light Sensor:BH1750 Address');bh=bh.length?bh[bh.length-1]:null;var ap=d.getElementsByName('Auto Brightness:Light Sensor:Analog Pin');ap=ap.length?ap[ap.length-1]:null;var ct=d.getElementById('abriCal');if(!sel||!bh||!ap||!ct)return;var bhr=bh.closest?bh.closest('tr'):null,apr=ap.closest?ap.closest('tr'):null;if(!bhr||!apr)return;function upd(){var v=sel.value;bhr.style.display=(v=='0'||v=='1')?'':'none';var an=(v=='3');apr.style.display=an?'':'none';ct.style.display=an?'':'none';}sel.addEventListener('change',upd);upd();}catch(e){}})();"));
 
     // Source-conditional visibility: hide fields that don't apply to the
     // selected Source (BH1750 Address for VEML/Analog; Analog Pin + the
