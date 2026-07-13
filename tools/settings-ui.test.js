@@ -126,6 +126,17 @@ const heads = [...sec.querySelectorAll('.abrih')].map(p=>p.textContent);
 ok(heads.includes('Light Sensor') && heads.includes('Brightness') && heads.includes('Off When Dark'),
    'group titles restyled to .abrih: '+JSON.stringify(heads));
 ok(heads.includes('Live'), 'Live header present as .abrih');
+// Live card is a standalone top panel: after the Enable row, BEFORE the first group
+// header ("Light Sensor"). Guards the v1.0.4 placement fix (the old .abrih/.abritbl
+// anchor landed the card under "Light Sensor" on-device).
+const liveCard = d.querySelector('.abricard');
+const enBox = last('Auto Brightness:Enabled');
+const lightSensorHead = [...sec.querySelectorAll('.abrih')].find(p => p.textContent === 'Light Sensor');
+const FOLLOWING = w.Node.DOCUMENT_POSITION_FOLLOWING;
+ok(liveCard && enBox && (enBox.compareDocumentPosition(liveCard) & FOLLOWING),
+   'Live card comes after the Enable row');
+ok(liveCard && lightSensorHead && (liveCard.compareDocumentPosition(lightSensorHead) & FOLLOWING),
+   'Live card comes BEFORE the Light Sensor header (standalone top panel)');
 // tables built, fields inside
 const tbls = [...sec.querySelectorAll('table.abritbl')];
 ok(tbls.length >= 6, `${tbls.length} .abritbl tables built (expect 6: sensor, cal, mapping, bri-settings, dark, mqtt + live readout = 7)`);

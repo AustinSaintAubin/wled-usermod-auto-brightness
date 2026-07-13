@@ -63,6 +63,12 @@ honest: when something ships, move its line to the Done log with the version.
 
 ## Done log
 
+- 2026-07-13 — v1.0.4 Live-card placement fix (unbenched — TESTING.md §1): the card was
+  landing **under** the "Light Sensor" header on-device — the `querySelector('.abrih')`
+  insertion anchor resolved differently on real WLED than in the jsdom render (which
+  showed it correctly as a standalone top panel). Now anchored deterministically to the
+  master Enable row's own `<br>`, so it sits alone right below Enable in every
+  environment. `tools/settings-ui.test.js` grew two DOM-order guards.
 - 2026-07-13 — v1.0.3 Live-card visual balance (unbenched — TESTING.md §1): the Live
   readout was edge-justified (values right-aligned to the far edge) while the title and
   Refresh button were centered, leaving short rows with a disconnected gap. Reworked into

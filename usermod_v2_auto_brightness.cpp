@@ -26,7 +26,7 @@
 #define USERMOD_ID_AUTO_BRIGHTNESS 901
 #endif
 
-#define AUTO_BRIGHTNESS_VERSION "1.0.3"  // keep in sync with library.json (CI-checked)
+#define AUTO_BRIGHTNESS_VERSION "1.0.4"  // keep in sync with library.json (CI-checked)
 
 #define AUTOBRI_PROBE_INTERVAL_MS 30000UL   // re-probe cadence while no sensor is found
 #define AUTOBRI_MQTT_HEARTBEAT_MS 300000UL  // forced lux republish (keeps HA alive)
@@ -627,7 +627,10 @@ public:
 
     // ---- "Live" readout card (source/lux/raw/control from /json/info; Refresh takes a
     // genuinely fresh reading — the raw ADC value is what you read off to fill the
-    // calibration table). Inserted before the first group header. ----
+    // calibration table). Inserted right after the master Enable row so it stands alone
+    // as a top-level status panel. NOTE: anchor to the Enable row's own <br>, NOT to
+    // querySelector('.abrih'/.abritbl') — that resolved differently on-device vs jsdom
+    // and dropped the card under the "Light Sensor" header (v1.0.4). ----
     oappend(F("(function(){try{if(d.getElementById('abriRd'))return;var en=d.getElementsByName('Auto Brightness:Enabled');if(!en.length)return;var cb=en[en.length-1],sec=cb;while(sec&&!(sec.nodeType==1&&sec.tagName=='DIV'&&sec.className=='sec'))sec=sec.parentNode;if(!sec)return;"));
     oappend(F("var card=d.createElement('div');card.className='abricard';var p=d.createElement('p');p.className='abrih';p.textContent='Live';p.style.margin='2px 0 8px';card.appendChild(p);"));
     // Centered key->value readout (no column header): label muted + left, value left a
@@ -638,7 +641,7 @@ public:
     oappend(F("function refresh(){T.innerHTML='';fetch('/json/info').then(function(r){return r.json();}).then(function(j){var u=(j&&j.u)||{},K=['Light Source','Ambient Light','Ambient Light Raw','Brightness Control'],any=0;K.forEach(function(k){if(!(k in u))return;any=1;var v=u[k];row(k,Array.isArray(v)?v.filter(function(x){return x!==''&&x!=null;}).join(' '):(''+v));});if(!any)row(cb.checked?'(no reading \\u2014 check sensor)':'(usermod disabled)','');}).catch(function(){row('(fetch failed)','');});}"));
     oappend(F("function reread(){fetch('/json/state',{method:'POST',headers:{'Content-Type':'application/json'},body:'{\"AutoBri\":{\"read\":true}}'}).then(function(){setTimeout(refresh,400);}).catch(function(){refresh();});}"));
     oappend(F("var btn=d.createElement('button');btn.type='button';btn.textContent='\\u21bb Refresh';btn.addEventListener('click',reread);var bw=d.createElement('div');bw.style.marginTop='4px';bw.appendChild(btn);card.appendChild(bw);"));
-    oappend(F("var anchor=sec.querySelector('.abrih')||sec.querySelector('.abritbl');sec.insertBefore(card,anchor||null);refresh();}catch(e){}})();"));
+    oappend(F("var nx=cb.nextSibling;while(nx&&!(nx.nodeType==1&&nx.tagName==='BR'))nx=nx.nextSibling;var anchor=nx?nx.nextSibling:(sec.querySelector('.abrih')||sec.querySelector('.abritbl'));sec.insertBefore(card,anchor||null);refresh();}catch(e){}})();"));
 
     // ---- hints (master hint on its own line below the checkbox; field hints land
     // inside their value cells because the tables have already been built) ----
